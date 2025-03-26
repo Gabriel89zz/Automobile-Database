@@ -17,7 +17,7 @@ namespace Automobile_Database
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            string filePath = @"C:\Users\TecNM\Downloads\Automobile_data.csv";
+            string filePath = @"C:\Users\elcom\Downloads\Automobile_data.csv";
 
             // Verificar si el archivo existe
             if (File.Exists(filePath))
@@ -101,51 +101,22 @@ namespace Automobile_Database
             LoadDataAndPlot(dv.ToTable());
         }
 
-        //private void LoadDataAndPlot()
-        //{
-        //    // Ruta al archivo CSV
-        //    string filePath = @"C:\Users\TecNM\Downloads\Automobile_data.csv";
-
-        //    // Diccionario para contar la frecuencia de cada tipo de combustible
-        //    var fuelTypeCounts = new Dictionary<string, int>();
-
-        //    // Leer el archivo CSV
-        //    using (var reader = new StreamReader(filePath))
-        //    {
-        //        // Saltar la primera línea (encabezados)
-        //        reader.ReadLine();
-
-        //        while (!reader.EndOfStream)
-        //        {
-        //            var line = reader.ReadLine();
-        //            var valores = line.Split(',');
-
-        //            // Obtener el tipo de combustible (columna 3)
-        //            string fuelType = valores[3];
-
-        //            // Contar la frecuencia de cada tipo de combustible
-        //            if (fuelTypeCounts.ContainsKey(fuelType))
-        //            {
-        //                fuelTypeCounts[fuelType]++;
-        //            }
-        //            else
-        //            {
-        //                fuelTypeCounts[fuelType] = 1;
-        //            }
-        //        }
-        //    }
-
-        //    // Preparar los datos para la gráfica de pie
-        //    var labels = fuelTypeCounts.Keys.ToArray();
-        //    var values = fuelTypeCounts.Values.Select(v => (double)v).ToArray();
-
-        //    var pie = plotFuelType.Plot.Add.Pie(values);
-        //}
-
         private void LoadDataAndPlot(DataTable filteredDataTable = null)
         {
             // Si no se proporciona un DataTable filtrado, usar el original
             DataTable dataTable = filteredDataTable ?? originalDataTable;
+
+            // Si dataTable es null, simplemente retornar sin mostrar mensaje
+            if (dataTable == null)
+            {
+                return;
+            }
+
+            // Si el DataTable está vacío, retornar sin mostrar mensaje
+            if (dataTable.Rows.Count == 0)
+            {
+                return;
+            }
 
             // Diccionario para contar la frecuencia de cada tipo de combustible
             var fuelTypeCounts = new Dictionary<string, int>();
@@ -153,18 +124,27 @@ namespace Automobile_Database
             // Recorrer las filas del DataTable
             foreach (DataRow row in dataTable.Rows)
             {
-                // Obtener el tipo de combustible (columna 3)
-                string fuelType = row[3].ToString();
+                // Verificar si la fila tiene datos en la columna 3 (índice 3)
+                if (row[3] != null && !string.IsNullOrEmpty(row[3].ToString()))
+                {
+                    string fuelType = row[3].ToString();
 
-                // Contar la frecuencia de cada tipo de combustible
-                if (fuelTypeCounts.ContainsKey(fuelType))
-                {
-                    fuelTypeCounts[fuelType]++;
+                    // Contar la frecuencia de cada tipo de combustible
+                    if (fuelTypeCounts.ContainsKey(fuelType))
+                    {
+                        fuelTypeCounts[fuelType]++;
+                    }
+                    else
+                    {
+                        fuelTypeCounts[fuelType] = 1;
+                    }
                 }
-                else
-                {
-                    fuelTypeCounts[fuelType] = 1;
-                }
+            }
+
+            // Si no hay datos para graficar, retornar sin mostrar mensaje
+            if (fuelTypeCounts.Count == 0)
+            {
+                return;
             }
 
             // Preparar los datos para la gráfica de pie
@@ -174,10 +154,24 @@ namespace Automobile_Database
             // Limpiar la gráfica anterior
             plotFuelType.Plot.Clear();
 
+
+
             // Agregar la nueva gráfica de pie
             var pie = plotFuelType.Plot.Add.Pie(values);
-            //pie.Labels = labels;
 
+            double total = pie.Slices.Select(x => x.Value).Sum();
+            double[] percentages = pie.Slices.Select(x => x.Value / total * 100).ToArray();
+
+            for (int i = 0; i < pie.Slices.Count; i++)
+            {
+                pie.Slices[i].Label = $"{percentages[i]:0.0}%";
+                pie.Slices[i].LabelFontSize = 20;
+                pie.Slices[i].LabelBold = true;
+                pie.Slices[i].LabelFontColor = Colors.Black.WithAlpha(.5);
+            }
+
+            plotFuelType.Plot.Axes.Frameless();
+            plotFuelType.Plot.HideGrid();
             // Renderizar la gráfica
             plotFuelType.Refresh();
         }
